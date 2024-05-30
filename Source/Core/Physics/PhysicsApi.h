@@ -1,6 +1,9 @@
 #pragma once 
 
+
 #include <glm/glm.hpp>
+#include <glm/gtx/matrix_cross_product.hpp> 
+
 #include <iostream>
 #include <vector>
 
@@ -14,7 +17,11 @@ namespace Candela {
 		std::vector<PhysicsEntity> EntityList;
 
 		void Initialize();
-		void OnUpdate(float dt);
+		void OnUpdate(float AppDt);
+
+	private :
+
+		float m_PhysicsTickAccumulator;
 	};
 
 }

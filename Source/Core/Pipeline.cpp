@@ -500,7 +500,7 @@ void Candela::StartPipeline()
 
 	// Physics
 	MainPhysicsHandler.EntityList.push_back(
-		PhysicsEntity(PhysicsShape::Cube, glm::vec3(0., 4.0f, 0.), glm::vec3(0.))
+		PhysicsEntity(PhysicsShape::Cube, glm::vec3(0., 4.0f, 0.), glm::vec3(0.,0.1f,0.05f))
 	);
 
 	MainPhysicsHandler.Initialize();
@@ -519,12 +519,20 @@ void Candela::StartPipeline()
 			continue;
 		}
 
+		// Simulate!
+
+		MainPhysicsHandler.OnUpdate(DeltaTime);
+
 		// Push Physics Objects =>
 
 		for (int i = 0; i < MainPhysicsHandler.EntityList.size(); i++) {
 			Object* o = MainPhysicsHandler.EntityList[i].Shape == PhysicsShape::Cube ? &Cube : &Sphere;
 			Entity& e = TempEntityBuffer.emplace_back(o);
-			e.m_Model = glm::translate(glm::mat4(1.0f), MainPhysicsHandler.EntityList[i].Position);
+
+			// Scale, Rotate, Translate order
+			e.m_Model = MainPhysicsHandler.EntityList[i].RotationMatrix;
+			e.m_Model = glm::translate(e.m_Model, MainPhysicsHandler.EntityList[i].Position);
+			
 			TempEntityBuffer.push_back(e);
 			EntityRenderList.push_back(&TempEntityBuffer.back());
 		}
