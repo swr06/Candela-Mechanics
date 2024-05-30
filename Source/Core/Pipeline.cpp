@@ -12,11 +12,10 @@
 #include "ModelRenderer.h"
 #include "GLClasses/Fps.h"
 #include "GLClasses/Framebuffer.h"
-#include "GLClasses/ComputeShader.h"
 #include "ShaderManager.h"
-#include "GLClasses/DepthBuffer.h"
-#include "GLClasses/CubeTextureMap.h"
 #include "Utils/Timer.h"
+
+#include "Physics/PhysicsApi.h"
 
 #include "SphereLight.h"
 
@@ -57,6 +56,12 @@ Candela::FPSCamera& Camera = Player.Camera;
 static bool vsync = false;
 static glm::vec3 _SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 
+//
+// Physics
+Candela::PhysicsHandler MainPhysicsHandler;
+//
+
+
 // Options
 
 // Misc 
@@ -92,9 +97,6 @@ std::vector<Candela::Entity*> EntityRenderList;
 
 // GBuffers
 GLClasses::Framebuffer GBuffer(16, 16, {{GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_R16I, GL_RED_INTEGER, GL_SHORT, false, false} }, false, true);
-
-// Skymap
-GLClasses::CubeTextureMap Skymap;
 
 // Draws editor grid 
 void DrawGrid(const glm::mat4 CameraMatrix, const glm::mat4& ProjectionMatrix, const glm::vec3& GridBasis, float size) 
@@ -234,18 +236,6 @@ public:
 				ImGui::Checkbox("Use PBR/Normal map?", &SelectedEntity->m_UsePBRMap);
 				ImGui::End();
 			}
-
-			// Draw frametime graph 
-			//ImGui::Begin("Frametime Graph");
-			//ImGui::NewLine();
-			//ImGui::Text("Frame Delta is : %f ms", DeltaTime * 1000.0f);
-			//ImGui::NewLine();
-			//if (ImPlot::BeginPlot("Frametime Plot (dt-time graph)")) {
-			//	ImPlot::SetupAxisLimits(ImAxis_X1, this->GetTime() - 12.0, this->GetTime() + 1.0f, ImGuiCond_Always);
-			//	ImPlot::PlotLine("Frametime Plot", GraphX, GraphY, 1024);
-			//	ImPlot::EndPlot();
-			//}
-			//ImGui::End();
 		}
 
 		if (ImGui::Begin("Options")) {
@@ -447,27 +437,10 @@ void Candela::StartPipeline()
 	Object Cube;
 	Object Sphere;
 	
-	// Load demo models 
 	FileLoader::LoadModelFile(&Cube, "Models/cube/scene.gltf");
 	FileLoader::LoadModelFile(&MainModel, "Models/cube/scene.gltf");
 	FileLoader::LoadModelFile(&Sphere, "Models/ball/scene.gltf");
 
-	// - Test models -
-	// uncomment to try them out :)
-	//FileLoader::LoadModelFile(&MainModel, "Models/sponza-2/sponza.obj");
-	//FileLoader::LoadModelFile(&MainModel, "Models/architecture/scene.gltf");
-	//FileLoader::LoadModelFile(&MainModel, "Models/living_room/living_room.obj");
-	//FileLoader::LoadModelFile(&MainModel, "Models/sponza-pbr/sponza.gltf");
-	//FileLoader::LoadModelFile(&MetalObject, "Models/monke/Suzanne.gltf");
-	//FileLoader::LoadModelFile(&MainModel, "Models/gitest/multibounce_gi_test_scene.gltf");
-	//FileLoader::LoadModelFile(&MainModel, "Models/sonic/N64 Yoshi Valley.obj");
-	//FileLoader::LoadModelFile(&MainModel, "Models/zeldamk/Wii Wario's Gold Mine.obj");
-	//FileLoader::LoadModelFile(&MainModel, "Models/thwomp/Thwomp Ruins.obj");
-	//FileLoader::LoadModelFile(&MainModel, "Models/csgo/scene.gltf");
-	//FileLoader::LoadModelFile(&MainModel, "Models/fireplace_room/fireplace_room.obj");
-	//FileLoader::LoadModelFile(&MainModel, "Models/mc/scene.gltf");
-	//FileLoader::LoadModelFile(&MainModel, "Models/peachcastle/Castle.obj");
-	
 	// Add objects to intersector
 	Intersector.Initialize();
 
@@ -475,7 +448,6 @@ void Candela::StartPipeline()
 	Intersector.AddObject(MainModel);
 	Intersector.AddObject(Cube);
 	Intersector.AddObject(Sphere);
-
 	Intersector.BufferData(true); // The flag is to tell the intersector to delete the cached cpu data 
 	Intersector.GenerateMeshTextureReferences(); // This function is called to generate the texture references for the BVH
 
@@ -484,42 +456,7 @@ void Candela::StartPipeline()
 
 	// Create the main model 
 	Entity MainModelEntity(&MainModel);
-	MainModelEntity.m_EntityRoughness = 0.65f;
 	MainModelEntity.m_Model = glm::scale(glm::mat4(1.0f), glm::vec3(10.0f, 0.1f, 10.0f));
-
-	// Create sphere 
-	Entity SphereEntity(&Sphere);
-	SphereEntity.m_Model = glm::translate(glm::mat4(1.0f), glm::vec3(-14.0f, 6.25f, -0.1f));
-	SphereEntity.m_IsSphereLight = false; 
-	SphereEntity.m_UseAlbedoMap = false;
-	SphereEntity.m_OverrideColor = glm::vec3(1., 0., 0.);
-
-	Entity CubeEntity(&Cube);
-	CubeEntity.m_Model = glm::translate(glm::mat4(1.0f), glm::vec3(-8.0f, 6.25f, -0.1f));
-	CubeEntity.m_IsSphereLight = false;
-	CubeEntity.m_OverrideColor = glm::vec3(0., 1., 0.);
-
-	// Add entities to the render list 
-	EntityRenderList = { &MainModelEntity, &SphereEntity, &CubeEntity };
-
-	// Create the environment map (the environment map is arbitrary) 
-
-	Skymap.CreateCubeTextureMap(
-		{
-		"Res/Skymap/right.bmp",
-		"Res/Skymap/left.bmp",
-		"Res/Skymap/top.bmp",
-		"Res/Skymap/bottom.bmp",
-		"Res/Skymap/front.bmp",
-		"Res/Skymap/back.bmp"
-		}, true
-	);
-
-
-
-	/////////////////////////////////////////
-	////// -- Internal engine code -- ///////
-	/////////////////////////////////////////
 
 	// Create VBO and VAO for drawing the screen-sized quad.
 	GLClasses::VertexBuffer ScreenQuadVBO;
@@ -543,11 +480,6 @@ void Candela::StartPipeline()
 		ScreenQuadVAO.Unbind();
 	}
 
-	GLClasses::Texture BlueNoise;
-	BlueNoise.CreateTexture("Res/blue_noise.png", false, false);
-	GLClasses::Texture BlueNoiseHR;
-	BlueNoiseHR.CreateTexture("Res/bluenoise_hr.png", false, false);
-
 	// Create Shaders
 	ShaderManager::CreateShaders();
 
@@ -562,10 +494,20 @@ void Candela::StartPipeline()
 	glm::mat4 InverseView;
 	glm::mat4 InverseProjection;
 
-
 	// Voxelizer
 	Voxelizer::CreateVolumes();
 	Voxelizer::RecompileShaders();
+
+	// Physics
+	MainPhysicsHandler.EntityList.push_back(
+		PhysicsEntity(PhysicsShape::Cube, glm::vec3(0., 4.0f, 0.), glm::vec3(0.))
+	);
+
+	MainPhysicsHandler.Initialize();
+
+	EntityRenderList.push_back(&MainModelEntity);
+
+	std::vector<Entity> TempEntityBuffer;
 
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
@@ -576,6 +518,20 @@ void Candela::StartPipeline()
 			GLClasses::DisplayFrameRate(app.GetWindow(), "Candela ");
 			continue;
 		}
+
+		// Push Physics Objects =>
+
+		for (int i = 0; i < MainPhysicsHandler.EntityList.size(); i++) {
+			Object* o = MainPhysicsHandler.EntityList[i].Shape == PhysicsShape::Cube ? &Cube : &Sphere;
+			Entity& e = TempEntityBuffer.emplace_back(o);
+			e.m_Model = glm::translate(glm::mat4(1.0f), MainPhysicsHandler.EntityList[i].Position);
+			TempEntityBuffer.push_back(e);
+			EntityRenderList.push_back(&TempEntityBuffer.back());
+		}
+
+		EntityRenderList.push_back(&MainModelEntity);
+
+		// 
 
 		glm::vec3 SunDirection = glm::normalize(_SunDirection);
 
@@ -685,6 +641,10 @@ void Candela::StartPipeline()
 		}
 
 		GLClasses::DisplayFrameRate(app.GetWindow(), EditMode ? "Candela | Edit Mode | " : "Candela | ");
+		
+		
+		TempEntityBuffer.clear();
+		EntityRenderList.clear();
 	}
 }
 

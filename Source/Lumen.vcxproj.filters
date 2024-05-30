@@ -246,6 +246,12 @@
     <ClInclude Include="Core\SphereLight.h">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Physics\PhysicsEntity.h">
+      <Filter>Source Files\Lumen\Lumen-Core\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Physics\PhysicsApi.h">
+      <Filter>Source Files\Lumen\Lumen-Core\Physics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dependencies\imgui\imgui.cpp">
@@ -397,6 +403,9 @@
     </ClCompile>
     <ClCompile Include="Core\Voxelizer.cpp">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Physics\PhysicsApi.cpp">
+      <Filter>Source Files\Lumen\Lumen-Core\Physics</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

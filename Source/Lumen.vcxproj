@@ -157,6 +157,8 @@
     <ClInclude Include="Core\Frustum.h" />
     <ClInclude Include="Core\Macros.h" />
     <ClInclude Include="Core\MathsHelpers.h" />
+    <ClInclude Include="Core\Physics\PhysicsApi.h" />
+    <ClInclude Include="Core\Physics\PhysicsEntity.h" />
     <ClInclude Include="Core\Plane.h" />
     <ClInclude Include="Core\Player.h" />
     <ClInclude Include="Core\Entity.h" />
@@ -221,6 +223,7 @@
     <ClCompile Include="Core\Entity.cpp" />
     <ClCompile Include="Core\Frustum.cpp" />
     <ClCompile Include="Core\MathsHelpers.cpp" />
+    <ClCompile Include="Core\Physics\PhysicsApi.cpp" />
     <ClCompile Include="Core\Player.cpp" />
     <ClCompile Include="Core\FpsCamera.cpp" />
     <ClCompile Include="Core\GLClasses\ComputeShader.cpp" />
